@@ -25,40 +25,36 @@ r = linspace(rhub+dr, R, n);
 
 % Initial data
 a_int = 1/3;
-Re_int = ReEst(u0, TSR, a_int, R, chordmin)
+Re_int = ReEst(u0, TSR, a_int, R, Bmax*0.7)
 w = u0*TSR/R;
 
 %% Setting up lists
-a = zeros(1, length(r));
-AoA_blade = a;
-lambda = a;
-amark = a;
-sigma = a;
-LcR_ratio = a;
-Lc = a;
-u_rel = a;
-Re = a;
-Cr = a;
-dM = a;
-dMmark = a;
-dT = a;
+AoA_blade = zeros(1, length(rlist));
+lambda = zeros(1, length(rlist));
+a = zeros(1, length(rlist));
+amark = zeros(1, length(rlist));
+sigma = zeros(1, length(rlist));
+LcR_ratio = zeros(1, length(rlist));
+Lc = zeros(1, length(rlist));
+u_rel = zeros(1, length(rlist));
+Re = zeros(1, length(rlist));
+Cr = zeros(1, length(rlist));
+dM = zeros(1, length(rlist));
+dMmark = zeros(1, length(rlist));
+dT = zeros(1, length(rlist));
 
 M = 0;
 T = 0;
 P = 0;
-lambda(end) = w*R/u0;
+lambda(end) = w*r/u0;
 %% Air properties
 rho = 1.225;
 vu = 15.6e-6;
 
 %% NACA 6409
-ClCd = 87.4; % [63.7 87.4 118.6]; % Re = 1e5, 2e5, 5e5, Ncrit = 5, opt AoA = 6, 6, 5
-Cl = 1.2603; % [1.2456 1.2603 1.1728]; % Re = 1e5, 2e5, 5e5, Ncrit = 5, opt AoA = 6, 6, 5
-Cd = Cl/ClCd;
-angle_opt = 6; % [6 6 5];
-
-% Choosing data based
-
+ClCd = [63.7 87.4 118.6]; % Re = 1e5, 2e5, 5e5, Ncrit = 5, opt AoA = 6, 6, 5
+Cl = [1.2456 1.2603 1.1728]; % Re = 1e5, 2e5, 5e5, Ncrit = 5, opt AoA = 6, 6, 5
+AoA_opt = [6 6 5];
 
 % %% NREL's S802 - DISCARDED
 % Cl = 1.1093; % @ Re = 5e5 & alpha = 5 deg
@@ -68,8 +64,8 @@ angle_opt = 6; % [6 6 5];
 
 
 
-for i = 1:n;
-    lambda(i) = w*r(i)/u0;
+for i = r;
+    lambda(i) = w*rlist(i)/u0;
     fun_temp = @(a, lr)(16*a^3 - 24*a^2 + a*(9 - 3*lr^2) - 1 + lr^2);
     fun = @(a) fun_temp(a, lambda(i));
     a(i) = fzero(fun, a_int); 
@@ -79,42 +75,29 @@ for i = 1:n;
     Ca(i) = Cl*cosd(sigma(i)) + Cd*sind(sigma(i));
     Cr(i) = Cl*sind(sigma(i)) - Cd*cosd(sigma(i));
     LcR_ratio(i) = (8*pi*a(i)*lambda(i)*sind(sigma(i))^2)/((1 - a(i))*z*Ca(i)*lambda(end));
-    Lc(i) = R*LcR_ratio(i);
+    Lc(i) = r*LcR_ratio(i);
     
     % Deciding if blade is larger than allowed
         % Checking if height is limiting factor
-        if Lc(i)*sind(AoA_blade(i)) >= Hmax
-            Lc(i) = Hmax/sind(AoA_blade(i));
+        if Lc(i)*sind(AoA_blade(i)) >= Lmaxh
+            Lc(i) = Lmaxh/sind(AoA_blade(i));
         else
         end
-        if Lc(i)*cosd(AoA_blade(i)) >= Bmax
-            Lc(i) = Bmax/cosd(AoA_blade(i));
+        if Lc(i)*cosd(AoA_blade(i)) >= Lmaxb
+            Lc(i) = Lmaxb/cosd(AoA_blade(i));
         else
         end
         if Lc(i) <= chordmin
             Lc(i) = chordmin;
         else
         end
-%         if Lc(i)*0.09 <= tmin
-%             Lc(i) = tmin/0.09;
-%         else
-%         end
+        if Lc(i)*0.09 <= tmin
+            Lc(i) = tmin/0.09;
+        else
+        end
             
-    u_rel(i) = sqrt(((1-a(i))*u0)^2 + ((1+amark(i))*w*r(i))^2);
-    Re(i) = u_rel(i)*Lc(i)/vu;
-    dMmark(i) = 0.5*rho*u_rel(i)^2 *Cr(i)*Lc(i)*dr;
-    dM(i) = dMmark(i)*r(i);
-    dT(i) = 0.5*rho*u_rel(i)^2 *Ca(i)*Lc(i)*dr;
-    
-    P = P + (dMmark(i)*r(i)*w*z);
-    
-    
-    M = M + dM(i);
-    T = T + dT(i);
-end
-figure()
-plot(r, Lc)
 
+end
 function re = ReEst(U, TSR, a, r, Lc)
 vu = 15.6e-6;
 a_mark = (1 - 3*a)/(4*a - 1);
